@@ -332,6 +332,237 @@ namespace System.AI.Experimental
 
             #region methods
 
+            public void backward(Tensor grad = null)
+            {
+                if(!this.requires_grad)
+                {
+                    throw new Exception("");
+                }
+                if(this.shape.ndim != 0)
+                {
+                    if(grad == null)
+                    {
+                        throw new Exception("");
+                    }
+                    if(grad.shape != this.shape)
+                    {
+                        throw new Exception("");
+                    }
+                }
+                // topological order all of the children in the graph
+                var topo = new List<Tensor>();
+                var visited = new HashSet<Tensor>();
+                Action<Tensor> build_topo = null;
+                build_topo = (Tensor v) =>
+                {
+                    if(!visited.Contains(v))
+                    {
+                        visited.Add(v);
+                        if(v._parent != null)
+                        {
+                            foreach(var child in v._parent)
+                            {
+                                build_topo(child);
+                            }
+                        }
+                        topo.Add(v);
+                    }
+                };
+                build_topo(this);
+                // go one variable at a time and apply the chain rule to get its gradient
+                this.grad = grad ?? 1f;
+                topo.Reverse();
+                foreach(var v in topo)
+                {
+                    if(v.backward_fn != null)
+                    {
+                        v.backward_fn();
+                    }
+                }
+            }
+
+            #region _copy(source, destination, count)
+
+            private static void _copy(float* source, float* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i];
+                }
+            }
+
+            private static void _copy(int* source, float* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i];
+                }
+            }
+
+            private static void _copy(bool* source, float* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i] ? 1 : 0;
+                }
+            }
+
+            private static void _copy(float* source, int* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = (int)source[i];
+                }
+            }
+
+            private static void _copy(int* source, int* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i];
+                }
+            }
+
+            private static void _copy(bool* source, int* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i] ? 1 : 0;
+                }
+            }
+
+            private static void _copy(float* source, bool* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i] != 0;
+                }
+            }
+
+            private static void _copy(int* source, bool* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i] != 0;
+                }
+            }
+
+            private static void _copy(bool* source, bool* destination, int count)
+            {
+                for(int i = 0; i < count; ++i)
+                {
+                    destination[i] = source[i];
+                }
+            }
+
+            #endregion
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="dtype"></param>
+            /// <returns></returns>
+            public static Tensor from_dotnet(Array array, DType? dtype = null, bool requires_grad = false)
+            {
+                var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+                if(array.GetType().GetElementType() == typeof(float))
+                {
+                    dtype = dtype ?? torchlite.float32;
+                    var shape = new int[array.Rank];
+                    for(int i = 0; i < shape.Length; ++i)
+                    {
+                        shape[i] = array.GetLength(i);
+                    }
+                    var t = new Tensor(shape, dtype, requires_grad);
+                    var source = (float*)handle.AddrOfPinnedObject();
+                    switch(dtype)
+                    {
+                        case torchlite.float32:
+                        {
+                            _copy(source, (float*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.int32:
+                        {
+                            _copy(source, (int*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.@bool:
+                        {
+                            _copy(source, (bool*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                    }
+                    handle.Free();
+                    return t;
+                }
+                if(array.GetType().GetElementType() == typeof(int))
+                {
+                    dtype = dtype ?? torchlite.int32;
+                    var shape = new int[array.Rank];
+                    for(int i = 0; i < shape.Length; ++i)
+                    {
+                        shape[i] = array.GetLength(i);
+                    }
+                    var t = new Tensor(shape, dtype, requires_grad);
+                    var source = (int*)handle.AddrOfPinnedObject();
+                    switch(dtype)
+                    {
+                        case torchlite.float32:
+                        {
+                            _copy(source, (float*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.int32:
+                        {
+                            _copy(source, (int*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.@bool:
+                        {
+                            _copy(source, (bool*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                    }
+                    handle.Free();
+                    return t;
+                }
+                if(array.GetType().GetElementType() == typeof(bool))
+                {
+                    dtype = dtype ?? torchlite.@bool;
+                    var shape = new int[array.Rank];
+                    for(int i = 0; i < shape.Length; ++i)
+                    {
+                        shape[i] = array.GetLength(i);
+                    }
+                    var t = new Tensor(shape, dtype, requires_grad);
+                    var source = (bool*)handle.AddrOfPinnedObject();
+                    switch(dtype)
+                    {
+                        case torchlite.float32:
+                        {
+                            _copy(source, (float*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.int32:
+                        {
+                            _copy(source, (int*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                        case torchlite.@bool:
+                        {
+                            _copy(source, (bool*)t.storage.data_ptr, t.shape.numel());
+                            break;
+                        }
+                    }
+                    handle.Free();
+                    return t;
+                }
+                handle.Free();
+                throw new ArgumentException("Only float, int and bool arrays are supported.");
+            }
+
             private void _print(ref string str, int* loc, int dim, string format)
             {
                 if((this.shape.ndim - dim) != 0)
@@ -504,6 +735,36 @@ namespace System.AI.Experimental
                 _print(ref str, loc, 0, format);
                 str += string.Format(", dtype = torchlite.{0}, requires_grad = {1}", this.dtype.ToString(), this.requires_grad);
                 return str + ")";
+            }
+
+            #endregion
+
+            #region operators
+
+            public static implicit operator Tensor(float value)
+            {
+                var t = new Tensor();
+                _copy(&value, (float*)t.storage.data_ptr, 1);
+                return t;
+            }
+
+            public static implicit operator Tensor(int value)
+            {
+                var t = new Tensor(torchlite.@int);
+                _copy(&value, (int*)t.storage.data_ptr, 1);
+                return t;
+            }
+
+            public static implicit operator Tensor(bool value)
+            {
+                var t = new Tensor(torchlite.@bool);
+                _copy(&value, (bool*)t.storage.data_ptr, 1);
+                return t;
+            }
+
+            public static implicit operator Tensor(Array value)
+            {
+                return from_dotnet(value);
             }
 
             #endregion
