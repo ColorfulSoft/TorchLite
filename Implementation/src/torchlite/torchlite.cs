@@ -1924,6 +1924,16 @@ namespace System.AI.Experimental
             }
         }
 
+        /// <summary>
+        /// Checks whether the specified data type is a real floating point.
+        /// </summary>
+        /// <param name="dtype">Data type.</param>
+        /// <returns>true, if dtype is floating point.</returns>
+        public static bool is_floating_point(this DType dtype)
+        {
+            return dtype == torchlite.float32;
+        }
+
         #endregion
 
     }
