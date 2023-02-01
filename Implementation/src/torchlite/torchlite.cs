@@ -6,6 +6,7 @@
 using System;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace System.AI.Experimental
@@ -1891,6 +1892,1095 @@ namespace System.AI.Experimental
                                           bool requires_grad = false)
         {
             return torchlite.uniform(value.shape, min, max, dtype ?? value.dtype, requires_grad);
+        }
+
+        #endregion
+
+        #region Reduction ops
+
+        public static unsafe Tensor sum(this Tensor input, bool keepdim = false)
+        {
+            var dim = new int[input.shape.ndim];
+            for(int i = 0; i < dim.Length; ++i)
+            {
+                dim[i] = i;
+            }
+            return input.sum(dim, keepdim);
+        }
+
+        public static unsafe Tensor sum(this Tensor input, int dim, bool keepdim = false)
+        {
+            return input.sum(new []{dim}, keepdim);
+        }
+
+        public static unsafe Tensor sum(this Tensor input, IList<int> dim, bool keepdim = false)
+        {
+            if(dim == null)
+            {
+                throw new NullReferenceException("Null value is invalid for 'dim' argument.");
+            }
+            // Get number of dimensions and number of elements of input tensor.
+            var x_ndim = input.shape.ndim;
+            var x_numel = input.shape.numel();
+            // Clean up the dimension list.
+            // [1, 1] -> ArgumentException
+            // [0, 1] -> [0, 1]
+            // [0, -1] -> [0, <last dimension number>]
+            // etc.
+            var _dim = new List<int>();
+            for(int i = 0; i < dim.Count; ++i)
+            {
+                var current = (dim[i] >= 0) ? dim[i] : (x_ndim - dim[i]);
+                if(!_dim.Contains(current))
+                {
+                    _dim.Add(current);
+                }
+                else
+                {
+                    throw new ArgumentException(string.Format("Dim {0} appears multiple times in the list of dims.", current));
+                }
+            }
+            var reduced_dims_count = _dim.Count;
+            // Compute reduced shapes.
+            // reduced_shape: with single dimensions instead of reduced.
+            // reduced_shape: without single dimensions instead of reduced.
+            var reduced_shape = new List<int>();
+            var reduced_shape_squeezed = new List<int>();
+            var x_shape = input.shape.data_ptr;
+            for(int i = 0; i < x_ndim; ++i)
+            {
+                if(_dim.Contains(i))
+                {
+                    reduced_shape.Add(1);
+                    continue;
+                }
+                reduced_shape.Add(input.shape[i]);
+                reduced_shape_squeezed.Add(input.shape[i]);
+            }
+            // compute strides of the input tensor.
+            var x_strides = (int*)Marshal.AllocHGlobal(x_ndim * sizeof(int));
+            if(x_ndim > 0)
+            {
+                x_strides[x_ndim - 1] = 1;
+            }
+            for(int i = x_ndim - 2; i >= 0; --i)
+            {
+                x_strides[i] = x_strides[i + 1] * x_shape[i + 1];
+            }
+            // Reduce
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var result = torchlite.zeros(keepdim ? reduced_shape : reduced_shape_squeezed, dtype: input.dtype, requires_grad: input.requires_grad);
+                    var y_shape = result.shape.data_ptr;
+                    var x = (float*)input.storage.data_ptr;
+                    var y = (float*)result.storage.data_ptr;
+                    for(int i = 0; i < x_numel; ++i)
+                    {
+                        var y_i = 0;
+                        var idx = 0;
+                        var x_i = i;
+                        for(int j = 0; j < x_ndim; ++j)
+                        {
+                            var loc = x_i / x_strides[j];
+                            x_i -= loc * x_strides[j];
+                            for(int k = 0; k < reduced_dims_count; ++k)
+                            {
+                                if(j == _dim[k])
+                                {
+                                    goto skip_dim;
+                                }
+                            }
+                            y_i *= y_shape[idx++];
+                            y_i += loc;
+                          skip_dim:;
+                        }
+                        y[y_i] += x[i];
+                    }
+                    if(result.requires_grad)
+                    {
+                        result.__parents = new []{input};
+                        result.backward_fn = () =>
+                        {
+                            var y_grad = (float*)result.grad.storage.data_ptr;
+                            var x_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < x_numel; ++i)
+                            {
+                                var y_i = 0;
+                                var idx = 0;
+                                var x_i = i;
+                                for(int j = 0; j < x_ndim; ++j)
+                                {
+                                    var loc = x_i / x_strides[j];
+                                    x_i -= loc * x_strides[j];
+                                    for(int k = 0; k < reduced_dims_count; ++k)
+                                    {
+                                        if(j == _dim[k])
+                                        {
+                                            goto skip_dim;
+                                        }
+                                    }
+                                    y_i *= y_shape[idx++];
+                                    y_i += loc;
+                                  skip_dim:;
+                                }
+                                x_grad[i] += y_grad[y_i];
+                            }
+                            Marshal.FreeHGlobal((IntPtr)x_strides);
+                        };
+                    }
+                    else
+                    {
+                        Marshal.FreeHGlobal((IntPtr)x_strides);
+                    }
+                    return result;
+                }
+                case torchlite.int32:
+                {
+                    var result = torchlite.zeros(keepdim ? reduced_shape : reduced_shape_squeezed, dtype: input.dtype, requires_grad: input.requires_grad);
+                    var y_shape = result.shape.data_ptr;
+                    var x = (int*)input.storage.data_ptr;
+                    var y = (int*)result.storage.data_ptr;
+                    for(int i = 0; i < x_numel; ++i)
+                    {
+                        var y_i = 0;
+                        var idx = 0;
+                        var x_i = i;
+                        for(int j = 0; j < x_ndim; ++j)
+                        {
+                            var loc = x_i / x_strides[j];
+                            x_i -= loc * x_strides[j];
+                            for(int k = 0; k < reduced_dims_count; ++k)
+                            {
+                                if(j == _dim[k])
+                                {
+                                    goto skip_dim;
+                                }
+                            }
+                            y_i *= y_shape[idx++];
+                            y_i += loc;
+                          skip_dim:;
+                        }
+                        y[y_i] += x[i];
+                    }
+                    Marshal.FreeHGlobal((IntPtr)x_strides);
+                    return result;
+                }
+                case torchlite.@bool:
+                {
+                    throw new NotImplementedException();
+                }
+                default:
+                {
+                    throw new TypeAccessException();
+                }
+            }
+        }
+
+        public static unsafe Tensor mean(this Tensor input, bool keepdim = false)
+        {
+            var dim = new int[input.shape.ndim];
+            for(int i = 0; i < dim.Length; ++i)
+            {
+                dim[i] = i;
+            }
+            return input.mean(dim, keepdim);
+        }
+
+        public static unsafe Tensor mean(this Tensor input, int dim, bool keepdim = false)
+        {
+            return input.mean(new []{dim}, keepdim);
+        }
+
+        public static unsafe Tensor mean(this Tensor input, IList<int> dim, bool keepdim = false)
+        {
+            if(dim == null)
+            {
+                throw new NullReferenceException("Null value is invalid for 'dim' argument.");
+            }
+            // Get number of dimensions and number of elements of input tensor.
+            var x_ndim = input.shape.ndim;
+            var x_numel = input.shape.numel();
+            // Clean up the dimension list.
+            // [1, 1] -> ArgumentException
+            // [0, 1] -> [0, 1]
+            // [0, -1] -> [0, <last dimension number>]
+            // etc.
+            var _dim = new List<int>();
+            for(int i = 0; i < dim.Count; ++i)
+            {
+                var current = (dim[i] >= 0) ? dim[i] : (x_ndim - dim[i]);
+                if(!_dim.Contains(current))
+                {
+                    _dim.Add(current);
+                }
+                else
+                {
+                    throw new ArgumentException(string.Format("Dim {0} appears multiple times in the list of dims.", current));
+                }
+            }
+            var reduced_dims_count = _dim.Count;
+            // Compute reduced shapes.
+            // reduced_shape: with single dimensions instead of reduced.
+            // reduced_shape: without single dimensions instead of reduced.
+            var reduced_shape = new List<int>();
+            var reduced_shape_squeezed = new List<int>();
+            var reduced_elements = 1;
+            var x_shape = input.shape.data_ptr;
+            for(int i = 0; i < x_ndim; ++i)
+            {
+                if(_dim.Contains(i))
+                {
+                    reduced_shape.Add(1);
+                    reduced_elements *= x_shape[i];
+                    continue;
+                }
+                reduced_shape.Add(input.shape[i]);
+                reduced_shape_squeezed.Add(input.shape[i]);
+            }
+            // compute strides of the input tensor.
+            var x_strides = (int*)Marshal.AllocHGlobal(x_ndim * sizeof(int));
+            if(x_ndim > 0)
+            {
+                x_strides[x_ndim - 1] = 1;
+            }
+            for(int i = x_ndim - 2; i >= 0; --i)
+            {
+                x_strides[i] = x_strides[i + 1] * x_shape[i + 1];
+            }
+            // Reduce
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var result = torchlite.zeros(keepdim ? reduced_shape : reduced_shape_squeezed, dtype: input.dtype, requires_grad: input.requires_grad);
+                    var y_shape = result.shape.data_ptr;
+                    var x = (float*)input.storage.data_ptr;
+                    var y = (float*)result.storage.data_ptr;
+                    for(int i = 0; i < x_numel; ++i)
+                    {
+                        var y_i = 0;
+                        var idx = 0;
+                        var x_i = i;
+                        for(int j = 0; j < x_ndim; ++j)
+                        {
+                            var loc = x_i / x_strides[j];
+                            x_i -= loc * x_strides[j];
+                            for(int k = 0; k < reduced_dims_count; ++k)
+                            {
+                                if(j == _dim[k])
+                                {
+                                    goto skip_dim;
+                                }
+                            }
+                            y_i *= y_shape[idx++];
+                            y_i += loc;
+                          skip_dim:;
+                        }
+                        y[y_i] += x[i];
+                    }
+                    var y_numel = result.shape.numel();
+                    for(int i = 0; i < y_numel; ++i)
+                    {
+                        y[i] /= reduced_elements;
+                    }
+                    if(result.requires_grad)
+                    {
+                        result.__parents = new []{input};
+                        result.backward_fn = () =>
+                        {
+                            var y_grad = (float*)result.grad.storage.data_ptr;
+                            var x_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < x_numel; ++i)
+                            {
+                                var y_i = 0;
+                                var idx = 0;
+                                var x_i = i;
+                                for(int j = 0; j < x_ndim; ++j)
+                                {
+                                    var loc = x_i / x_strides[j];
+                                    x_i -= loc * x_strides[j];
+                                    for(int k = 0; k < reduced_dims_count; ++k)
+                                    {
+                                        if(j == _dim[k])
+                                        {
+                                            goto skip_dim;
+                                        }
+                                    }
+                                    y_i *= y_shape[idx++];
+                                    y_i += loc;
+                                  skip_dim:;
+                                }
+                                x_grad[i] += y_grad[y_i] / reduced_elements;
+                            }
+                            Marshal.FreeHGlobal((IntPtr)x_strides);
+                        };
+                    }
+                    else
+                    {
+                        Marshal.FreeHGlobal((IntPtr)x_strides);
+                    }
+                    return result;
+                }
+                case torchlite.int32:
+                {
+                    var result = torchlite.zeros(keepdim ? reduced_shape : reduced_shape_squeezed, dtype: input.dtype, requires_grad: input.requires_grad);
+                    var y_shape = result.shape.data_ptr;
+                    var x = (int*)input.storage.data_ptr;
+                    var y = (int*)result.storage.data_ptr;
+                    for(int i = 0; i < x_numel; ++i)
+                    {
+                        var y_i = 0;
+                        var idx = 0;
+                        var x_i = i;
+                        for(int j = 0; j < x_ndim; ++j)
+                        {
+                            var loc = x_i / x_strides[j];
+                            x_i -= loc * x_strides[j];
+                            for(int k = 0; k < reduced_dims_count; ++k)
+                            {
+                                if(j == _dim[k])
+                                {
+                                    goto skip_dim;
+                                }
+                            }
+                            y_i *= y_shape[idx++];
+                            y_i += loc;
+                          skip_dim:;
+                        }
+                        y[y_i] += x[i];
+                    }
+                    var y_numel = result.shape.numel();
+                    for(int i = 0; i < y_numel; ++i)
+                    {
+                        y[i] /= reduced_elements;
+                    }
+                    Marshal.FreeHGlobal((IntPtr)x_strides);
+                    return result;
+                }
+                case torchlite.@bool:
+                {
+                    throw new NotImplementedException();
+                }
+                default:
+                {
+                    throw new TypeAccessException();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Pointwise ops
+
+        /// <summary>
+        /// Applies the rectified linear unit function element-wise.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor relu(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.relu is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, input.dtype, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (src[i] > 0) ? src[i] : 0;
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (src[i] > 0) ? dst_grad[i] : 0;
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (int*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (src[i] > 0) ? src[i] : 0;
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Computes the absolute value of each element in input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor abs(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.abs is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, input.dtype, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = Math.Abs(src[i]);
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += Math.Sign(src[i]) * dst_grad[i];
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (int*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (src[i] > 0) ? src[i] : 0;
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.abs().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor absolute(this Tensor input)
+        {
+            return input.abs();
+        }
+
+        /// <summary>
+        /// Computes the inverse cosine of each element in input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor acos(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.acos is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Acos(src[i]);
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)((-1f) / (Math.Sqrt(1f - src[i] * src[i])) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Acos(src[i]);
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.acos().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arccos(this Tensor input)
+        {
+            return input.acos();
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the inverse hyperbolic cosine of the elements of input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor acosh(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.acosh is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        var x = src[i];
+                        dst[i] = (float)Math.Log(x + Math.Sqrt(x * x - 1));
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)(1f / (Math.Sqrt(src[i] - 1f) * Math.Sqrt(src[i] + 1f)) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        var x = src[i];
+                        dst[i] = (float)Math.Log(x + Math.Sqrt(x * x - 1));
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.acosh().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arccosh(this Tensor input)
+        {
+            return input.acosh();
+        }
+
+        /// <summary>
+        /// Adds other, scaled by alpha, to input.
+        /// </summary>
+        /// <param name="input">The input tensor.</param>
+        /// <param name="other">The tensor or number to add to input.</param>
+        /// <param name="alpha">The multiplier for other.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor add(this Tensor input,
+                                        Tensor other,
+                                        float alpha = 1f)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Performs the element-wise division of tensor1 by tensor2,
+        /// multiply the result by the scalar value and add it to input.
+        /// </summary>
+        /// <param name="input">The tensor to be added.</param>
+        /// <param name="tensor1">The numerator tensor.</param>
+        /// <param name="tensor2">The denominator tensor.</param>
+        /// <param name="value">Multiplier for tensor1/tensor2.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor addcdiv(this Tensor input,
+                                            Tensor tensor1,
+                                            Tensor tensor2,
+                                            float value = 1f)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Performs the element-wise multiplication of tensor1 by tensor2,
+        /// multiply the result by the scalar value and add it to input.
+        /// </summary>
+        /// <param name="input">The tensor to be added.</param>
+        /// <param name="tensor1">The tensor to be multiplied.</param>
+        /// <param name="tensor2">The tensor to be multiplied.</param>
+        /// <param name="value">Multiplier for tensor1.∗tensor2.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor addcmul(this Tensor input,
+                                            Tensor tensor1,
+                                            Tensor tensor2,
+                                            float value = 1f)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the arcsine of the elements of input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor asin(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.asin is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Asin(src[i]);
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)(1f / (Math.Sqrt(1f - src[i] * src[i])) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Asin(src[i]);
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.asin().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arcsin(this Tensor input)
+        {
+            return input.asin();
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the inverse hyperbolic sine of the elements of input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor asinh(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.asinh is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        var x = src[i];
+                        dst[i] = (float)Math.Log(x + Math.Sqrt(x * x + 1));
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)(1f / Math.Sqrt(src[i] * src[i] + 1f) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        var x = src[i];
+                        dst[i] = (float)Math.Log(x + Math.Sqrt(x * x + 1));
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.asinh().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arcsinh(this Tensor input)
+        {
+            return input.asinh();
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the arctangent of the elements of input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor atan(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.atan is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Atan(src[i]);
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)(1f / (1f + src[i] * src[i]) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Atan(src[i]);
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.atan().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arctan(this Tensor input)
+        {
+            return input.atan();
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the inverse hyperbolic tangent of the elements of input.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor atanh(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.atanh is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, torchlite.float32, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = 0.5f * (float)Math.Log((1f + src[i]) / (1f - src[i]));
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                            var dst_grad = (float*)output.grad.storage.data_ptr;
+                            var src_grad = (float*)input.grad.storage.data_ptr;
+                            for(int i = 0; i < elements; ++i)
+                            {
+                                src_grad[i] += (float)(1f / (1f - src[i] * src[i]) * dst_grad[i]);
+                            }
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = 0.5f * (float)Math.Log((1f + src[i]) / (1f - src[i]));
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Alias for torch.atanh().
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arctanh(this Tensor input)
+        {
+            return input.atanh();
+        }
+
+        /// <summary>
+        /// Element-wise arctangent of input_i / other_i with consideration of the quadrant.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="other">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor atan2(this Tensor input, Tensor other)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Alias for torch.atan2().
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="other">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor arctan2(this Tensor input, Tensor other)
+        {
+            return input.atan2(other);
+        }
+
+        /// <summary>
+        /// Computes the bitwise NOT of the given input tensor.
+        /// The input tensor must be of integral or Boolean types.
+        /// For bool tensors, it computes the logical NOT.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor bitwise_not(this Tensor input)
+        {
+            if((input.dtype != torchlite.float32))
+            {
+                throw new NotImplementedException("torchlite.bitwise_not is not implemented for float32 tensors.");
+            }
+            var output = new Tensor(input.shape, input.dtype, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (int*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = ~src[i];
+                    }
+                    break;
+                }
+                case torchlite.@bool:
+                {
+                    var src = (bool*)input.storage.data_ptr;
+                    var dst = (bool*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = !src[i];
+                    }
+                    break;
+                }
+            }
+            return output;
+        }
+
+        /// <summary>
+        /// Computes the bitwise AND of input and other.
+        /// The input tensor must be of integral or Boolean types.
+        /// For bool tensors, it computes the logical AND.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="output">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public unsafe static Tensor bitwise_and(this Tensor input, Tensor output)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Computes the bitwise OR of input and other.
+        /// The input tensor must be of integral or Boolean types.
+        /// For bool tensors, it computes the logical OR.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="output">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public unsafe static Tensor bitwise_or(this Tensor input, Tensor output)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Computes the bitwise XOR of input and other.
+        /// The input tensor must be of integral or Boolean types.
+        /// For bool tensors, it computes the logical XOR.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="output">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public unsafe static Tensor bitwise_xor(this Tensor input, Tensor output)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Computes the left arithmetic shift of input by other bits.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="output">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public unsafe static Tensor bitwise_left_shift(this Tensor input, Tensor output)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Computes the right arithmetic shift of input by other bits.
+        /// </summary>
+        /// <param name="input">The first input tensor.</param>
+        /// <param name="output">The second input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public unsafe static Tensor bitwise_right_shift(this Tensor input, Tensor output)
+        {
+            throw new NotImplementedException(); //TODO
+        }
+
+        /// <summary>
+        /// Returns a new tensor with the ceil of the elements of input,
+        /// the smallest integer greater than or equal to each element.
+        /// </summary>
+        /// <param name="input">Input tensor.</param>
+        /// <returns>Tensor.</returns>
+        public static unsafe Tensor ceil(this Tensor input)
+        {
+            if(input.dtype == torchlite.@bool)
+            {
+                throw new NotImplementedException("torchlite.ceil is not implemented for bool tensors.");
+            }
+            var output = new Tensor(input.shape, input.dtype, input.requires_grad);
+            var elements = output.storage.size;
+            switch(input.dtype)
+            {
+                case torchlite.float32:
+                {
+                    var src = (float*)input.storage.data_ptr;
+                    var dst = (float*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = (float)Math.Ceiling(src[i]);
+                    }
+                    if(input.requires_grad)
+                    {
+                        output.__parents = new []{input};
+                        output.backward_fn = () =>
+                        {
+                        };
+                    }
+                    break;
+                }
+                case torchlite.int32:
+                {
+                    var src = (int*)input.storage.data_ptr;
+                    var dst = (int*)output.storage.data_ptr;
+                    for(int i = 0; i < elements; ++i)
+                    {
+                        dst[i] = src[i];
+                    }
+                    break;
+                }
+            }
+            return output;
         }
 
         #endregion
