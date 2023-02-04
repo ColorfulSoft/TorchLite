@@ -14,15 +14,18 @@ namespace System.AI.Experimental
         public static partial class nn
         {
 
-            /// <summary>
-            /// A kind of Tensor that is to be considered a module parameter.
-            /// Parameters are Tensor subclasses, that have a very special property when used with
-            /// Module's - when they’re assigned as Module attributes they are automatically
-            /// added to the list of its parameters, and will appear e.g. in parameters() iterator.
-            /// Assigning a Tensor doesn’t have such effect.
-            /// </summary>
-            public sealed partial class Parameter : torchlite.Tensor
+            public partial class Parameter
             {
+
+                /// <summary>
+                /// Initializes the Parameter with specified Tensor.
+                /// </summary>
+                /// <param name="value">Tensor object.</param>
+                /// <param name="requires_grad">Specifies whether to create a gradient for the parameter.</param>
+                public Parameter(Tensor value, bool requires_grad = true) : base(value, requires_grad)
+                {
+                }
+
             }
 
         }
