@@ -17,16 +17,17 @@ namespace System.AI.Experimental
             public static partial class grad_mode
             {
 
-                /// <summary>
-                /// no_grad context manager. Disables gradient computing.
-                /// </summary>
-                [AttributeUsage(AttributeTargets.Assembly |
-                                AttributeTargets.Class |
-                                AttributeTargets.Constructor |
-                                AttributeTargets.Method |
-                                AttributeTargets.Struct)]
-                public sealed partial class no_grad : Attribute, IDisposable
+                public sealed partial class no_grad
                 {
+
+                    /// <summary>
+                    /// Sets the context manager when creating.
+                    /// </summary>
+                    public no_grad()
+                    {
+                        torchlite.__no_grad = true;
+                    }
+
                 }
 
             }
