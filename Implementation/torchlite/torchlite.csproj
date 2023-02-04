@@ -78,6 +78,9 @@
     <Compile Include="modules\torchlite\Size\Size.Size.cs" />
     <Compile Include="modules\torchlite\Size\Size.ToString.cs" />
     <Compile Include="modules\torchlite\Size\Size.~Size.cs" />
+    <Compile Include="modules\torchlite\Slice\Slice.cs" />
+    <Compile Include="modules\torchlite\Slice\Slice.Slice.cs" />
+    <Compile Include="modules\torchlite\Slice\Slice.ToString.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.bool.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.int.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.backward.cs" />
@@ -205,6 +208,7 @@
     <Folder Include="modules\torchlite\BoolStorage" />
     <Folder Include="modules\torchlite\Tensor" />
     <Folder Include="modules\torchlite.nn" />
+    <Folder Include="modules\torchlite\Slice" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
