@@ -9,21 +9,19 @@ namespace System.AI.Experimental
     public static partial class torchlite
     {
 
-        /// <summary>
-        /// Represents information about the slice (start and end indexes).
-        /// </summary>
         public partial struct Slice
         {
 
             /// <summary>
-            /// The beginning of the slice.
+            /// Initializes the slice structure.
             /// </summary>
-            public readonly int begin;
-
-            /// <summary>
-            /// End of the slice.
-            /// </summary>
-            public readonly int end;
+            /// <param name="begin">The beginning of the slice.</param>
+            /// <param name="end">End of the slice.</param>
+            public Slice(int begin, int? end = null)
+            {
+                this.begin = begin;
+                this.end = end ?? begin + 1;
+            }
 
         }
 

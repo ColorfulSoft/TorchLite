@@ -9,21 +9,17 @@ namespace System.AI.Experimental
     public static partial class torchlite
     {
 
-        /// <summary>
-        /// Represents information about the slice (start and end indexes).
-        /// </summary>
         public partial struct Slice
         {
 
             /// <summary>
-            /// The beginning of the slice.
+            /// Converts the current Slice object to a string representation.
             /// </summary>
-            public readonly int begin;
-
-            /// <summary>
-            /// End of the slice.
-            /// </summary>
-            public readonly int end;
+            /// <returns>String representation of Slice object.</returns>
+            public override string ToString()
+            {
+                return string.Format("torchlite.Slice(begin={0}, end={1})", this.begin, this.end);
+            }
 
         }
 
