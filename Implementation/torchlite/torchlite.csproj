@@ -95,12 +95,16 @@
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Equality.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_ExclusiveOr.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Explicit.cs" />
-    <Compile Include="modules\torchlite\Tensor\Tensor.op_false.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_False.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_GreaterThan.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_GreaterThanOrEqual.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Implicit.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Inequality.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_LessThan.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_LessThanOrEqual.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Multiply.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.op_Subtraction.cs" />
-    <Compile Include="modules\torchlite\Tensor\Tensor.op_true.cs" />
+    <Compile Include="modules\torchlite\Tensor\Tensor.op_True.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.Tensor.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.ToString.cs" />
     <Compile Include="modules\torchlite\Tensor\Tensor.__get_format.cs" />
@@ -130,6 +134,8 @@
     <Compile Include="modules\torchlite\torchlite.bitwise_xor.cs" />
     <Compile Include="modules\torchlite\torchlite.ceil.cs" />
     <Compile Include="modules\torchlite\torchlite.full.cs" />
+    <Compile Include="modules\torchlite\torchlite.is_storage.cs" />
+    <Compile Include="modules\torchlite\torchlite.is_tensor.cs" />
     <Compile Include="modules\torchlite\torchlite.mean.cs" />
     <Compile Include="modules\torchlite\torchlite.numel.cs" />
     <Compile Include="modules\torchlite\torchlite.randn.cs" />
