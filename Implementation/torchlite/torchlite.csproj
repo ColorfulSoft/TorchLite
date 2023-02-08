@@ -123,6 +123,7 @@
     <Compile Include="modules\torchlite\torchlite.arctan.cs" />
     <Compile Include="modules\torchlite\torchlite.arctan2.cs" />
     <Compile Include="modules\torchlite\torchlite.arctanh.cs" />
+    <Compile Include="modules\torchlite\torchlite.argwhere.cs" />
     <Compile Include="modules\torchlite\torchlite.asin.cs" />
     <Compile Include="modules\torchlite\torchlite.asinh.cs" />
     <Compile Include="modules\torchlite\torchlite.atan.cs" />
@@ -132,7 +133,10 @@
     <Compile Include="modules\torchlite\torchlite.bitwise_not.cs" />
     <Compile Include="modules\torchlite\torchlite.bitwise_or.cs" />
     <Compile Include="modules\torchlite\torchlite.bitwise_xor.cs" />
+    <Compile Include="modules\torchlite\torchlite.cat.cs" />
     <Compile Include="modules\torchlite\torchlite.ceil.cs" />
+    <Compile Include="modules\torchlite\torchlite.concat.cs" />
+    <Compile Include="modules\torchlite\torchlite.concatenate.cs" />
     <Compile Include="modules\torchlite\torchlite.full.cs" />
     <Compile Include="modules\torchlite\torchlite.is_storage.cs" />
     <Compile Include="modules\torchlite\torchlite.is_tensor.cs" />
