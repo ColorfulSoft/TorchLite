@@ -144,6 +144,7 @@
     <Compile Include="modules\torchlite\torchlite.numel.cs" />
     <Compile Include="modules\torchlite\torchlite.randn.cs" />
     <Compile Include="modules\torchlite\torchlite.relu.cs" />
+    <Compile Include="modules\torchlite\torchlite.squeeze.cs" />
     <Compile Include="modules\torchlite\torchlite.tensor.cs" />
     <Compile Include="modules\torchlite\torchlite.zeros.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
