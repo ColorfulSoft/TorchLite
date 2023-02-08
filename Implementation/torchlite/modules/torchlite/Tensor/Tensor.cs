@@ -40,7 +40,7 @@ namespace System.AI.Experimental
             /// <summary>
             /// Gradient tensor.
             /// </summary>
-            private Tensor __grad;
+            internal Tensor __grad;
 
             #endregion
 
@@ -54,7 +54,7 @@ namespace System.AI.Experimental
 
                 get;
 
-                private set;
+                internal set;
 
             }
 
@@ -66,7 +66,7 @@ namespace System.AI.Experimental
 
                 get;
 
-                private set;
+                internal set;
 
             }
 

@@ -16,7 +16,7 @@ namespace System.AI.Experimental
         public partial class Tensor
         {
 
-            private Tensor()
+            internal Tensor()
             {
             }
 
