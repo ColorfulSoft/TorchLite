@@ -29,12 +29,24 @@ namespace System.AI.Experimental
             var shape = new int[ndim];
             for(int i = 0; i < ndim; ++i)
             {
-                for(int j = 0; j < i; ++j)
+                for(int j = 0; j < ndim; ++j)
                 {
+                    if(i == j)
+                    {
+                        continue;
+                    }
                     if(dims[j] == dims[i])
                     {
                         throw new ArgumentException("Repeated dim in permute.");
                     }
+                }
+                if((dims[i] < -ndim) && (dims[i] >= ndim))
+                {
+                    throw new ArgumentException(string.Format("Dimension out of range (expected to be in range of [-{0}, {1}], but got {2})", ndim, ndim - 1, dims[i]));
+                }
+                if(dims[i] < 0)
+                {
+                    dims[i] += ndim;
                 }
                 shape[i] = x_shape[dims[i]];
             }
