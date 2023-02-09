@@ -40,14 +40,19 @@ namespace System.AI.Experimental
                 shape.Add(input_shape[i]);
             }
             t.shape = new Size(shape);
-            if(input.requires_grad)
+            if(input.requires_grad && torchlite.grad_enabled)
             {
-                t.__grad = new Tensor();
-                t.__grad.shape = new Size(t.shape);
-                t.__grad.storage = input.__grad.storage;
+                t.__grad = torchlite.zeros(t.shape);
                 t.__parents = new []{input};
+                var numel = t.shape.numel();
                 t.backward_fn = () =>
                 {
+                    var src_grad = (float*)input.grad.storage.data_ptr;
+                    var dst_grad = (float*)t.grad.storage.data_ptr;
+                    for(int i = 0; i < numel; ++i)
+                    {
+                        src_grad[i] += dst_grad[i];
+                    }
                 };
             }
             return t;
