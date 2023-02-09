@@ -146,7 +146,9 @@
     <Compile Include="modules\torchlite\torchlite.randn.cs" />
     <Compile Include="modules\torchlite\torchlite.relu.cs" />
     <Compile Include="modules\torchlite\torchlite.squeeze.cs" />
+    <Compile Include="modules\torchlite\torchlite.t.cs" />
     <Compile Include="modules\torchlite\torchlite.tensor.cs" />
+    <Compile Include="modules\torchlite\torchlite.transpose.cs" />
     <Compile Include="modules\torchlite\torchlite.zeros.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="modules\torchlite.autograd.grad_mode\no_grad\no_grad.cs" />
