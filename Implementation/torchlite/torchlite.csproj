@@ -135,6 +135,7 @@
     <Compile Include="modules\torchlite\torchlite.bitwise_xor.cs" />
     <Compile Include="modules\torchlite\torchlite.cat.cs" />
     <Compile Include="modules\torchlite\torchlite.ceil.cs" />
+    <Compile Include="modules\torchlite\torchlite.chunk.cs" />
     <Compile Include="modules\torchlite\torchlite.concat.cs" />
     <Compile Include="modules\torchlite\torchlite.concatenate.cs" />
     <Compile Include="modules\torchlite\torchlite.full.cs" />
