@@ -19,9 +19,13 @@ namespace System.AI.Experimental
             #region fields
 
             /// <summary>
-            /// Parent tensors.
+            /// Gradient tensor.
             /// </summary>
-            internal Tensor[] __parents;
+            internal Tensor __grad;
+
+            #endregion
+
+            #region properties
 
             /// <summary>
             /// The back propagation function.
@@ -36,13 +40,16 @@ namespace System.AI.Experimental
             }
 
             /// <summary>
-            /// Gradient tensor.
+            /// Parent tensors.
             /// </summary>
-            internal Tensor __grad;
+            public Tensor[] __parents
+            {
 
-            #endregion
+                get;
 
-            #region properties
+                set;
+
+            }
 
             /// <summary>
             /// Storage for tensor's data.
