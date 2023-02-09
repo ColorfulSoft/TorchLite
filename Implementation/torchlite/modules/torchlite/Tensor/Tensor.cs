@@ -16,15 +16,6 @@ namespace System.AI.Experimental
         public unsafe partial class Tensor
         {
 
-            #region delegates
-
-            /// <summary>
-            /// Back propagation function template.
-            /// </summary>
-            internal delegate void __backward_fn();
-
-            #endregion
-
             #region fields
 
             /// <summary>
@@ -35,7 +26,14 @@ namespace System.AI.Experimental
             /// <summary>
             /// The back propagation function.
             /// </summary>
-            internal __backward_fn backward_fn;
+            public Action backward_fn
+            {
+
+                get;
+
+                set;
+
+            }
 
             /// <summary>
             /// Gradient tensor.
