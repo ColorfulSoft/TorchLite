@@ -14,6 +14,16 @@ namespace System.AI.Experimental
         public partial class Tensor
         {
 
+            /// <summary>
+            /// Computes the gradient of current tensor w.r.t. graph leaves.
+            /// The graph is differentiated using the chain rule. If the tensor is non-scalar (i.e. its
+            /// data has more than one element) and requires gradient, the function additionally requires
+            /// specifying gradient. It should be a tensor of matching type and location, that contains the
+            /// gradient of the differentiated function w.r.t. self.
+            /// This function accumulates gradients in the leaves - you might need to zero .grad attributes or
+            /// set them to null before calling it.
+            /// </summary>
+            /// <param name="grad">Gradient w.r.t. the tensor. If it is a tensor, it will be automatically converted to a Tensor that does not require grad. Null values can be specified for scalar Tensors or ones that don’t require grad. If a null value would be acceptable then this argument is optional.</param>
             public void backward(Tensor grad = null)
             {
                 if(!this.requires_grad)
@@ -40,9 +50,9 @@ namespace System.AI.Experimental
                     if(!visited.Contains(v))
                     {
                         visited.Add(v);
-                        if(v.__parents != null)
+                        if(v.parents != null)
                         {
-                            foreach(var child in v.__parents)
+                            foreach(var child in v.parents)
                             {
                                 build_topo(child);
                             }

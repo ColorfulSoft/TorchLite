@@ -53,7 +53,7 @@ namespace System.AI.Experimental
                 }
                 if(t.requires_grad)
                 {
-                    t.__parents = new []{this};
+                    t.parents = new []{this};
                     t.backward_fn = () =>
                     {
                         var src_g = (float*)this.__grad.storage.data_ptr;

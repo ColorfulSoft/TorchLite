@@ -42,7 +42,7 @@ namespace System.AI.Experimental
             /// <summary>
             /// Parent tensors.
             /// </summary>
-            public Tensor[] __parents
+            public Tensor[] parents
             {
 
                 get;
@@ -409,7 +409,7 @@ namespace System.AI.Experimental
                             }
                             if(y.requires_grad)
                             {
-                                y.__parents = new []{this};
+                                y.parents = new []{this};
                                 y.backward_fn = () =>
                                 {
                                     var src_grad = (float*)this.grad.storage.data_ptr;
@@ -819,7 +819,7 @@ namespace System.AI.Experimental
                                     if(value.requires_grad)
                                     {
                                         this.grad = torchlite.zeros(this.shape);
-                                        this.__parents = new []{value};
+                                        this.parents = new []{value};
                                         this.backward_fn = () =>
                                         {
                                             var src_grad = (float*)value.grad.storage.data_ptr;
