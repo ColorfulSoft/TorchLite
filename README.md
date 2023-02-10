@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# TorchLite
+# TorchLite [Under develop]
 
 Demo lightweight PyTorch-like DL library for educational purposes
 
