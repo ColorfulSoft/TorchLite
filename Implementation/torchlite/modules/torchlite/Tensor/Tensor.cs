@@ -357,6 +357,7 @@ namespace System.AI.Experimental
                                 Marshal.FreeHGlobal((IntPtr)y_shape);
                                 throw e;
                             }
+                            shape.Add(end - begin[i]);
                             continue;
                         }
                         Marshal.FreeHGlobal((IntPtr)begin);
