@@ -16,7 +16,7 @@ namespace System.AI.Experimental
         {
 
             /// <summary>
-            /// Removes all items from the ICollection&ltT&gt.
+            /// Removes all items from the ICollection&lt;T&gt;.
             /// </summary>
             [Obsolete("ICollection<float>.Clear() -> void method is not implemented for torchlite.FloatStorage.", true)]
             void ICollection<float>.Clear()
