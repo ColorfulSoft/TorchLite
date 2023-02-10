@@ -174,7 +174,7 @@ namespace System.AI.Experimental
                             }
                             if(result.requires_grad)
                             {
-                                result.__parents = parents.ToArray();
+                                result.parents = parents.ToArray();
                                 result.backward_fn = () =>
                                 {
                                     var result_grad_ptr = (float*)result.grad.storage.data_ptr;
@@ -344,7 +344,7 @@ namespace System.AI.Experimental
                             }
                             if(result.requires_grad)
                             {
-                                result.__parents = parents.ToArray();
+                                result.parents = parents.ToArray();
                                 result.backward_fn = () =>
                                 {
                                     var result_grad_ptr = (float*)result.grad.storage.data_ptr;
@@ -437,7 +437,7 @@ namespace System.AI.Experimental
                             }
                             if(result.requires_grad)
                             {
-                                result.__parents = parents.ToArray();
+                                result.parents = parents.ToArray();
                                 result.backward_fn = () =>
                                 {
                                     var result_grad_ptr = (float*)result.grad.storage.data_ptr;
@@ -546,7 +546,7 @@ namespace System.AI.Experimental
                             }
                             if(result.requires_grad)
                             {
-                                result.__parents = parents.ToArray();
+                                result.parents = parents.ToArray();
                                 result.backward_fn = () =>
                                 {
                                     var result_grad_ptr = (float*)result.grad.storage.data_ptr;
@@ -764,7 +764,7 @@ namespace System.AI.Experimental
                             }
                             if(result.requires_grad)
                             {
-                                result.__parents = parents.ToArray();
+                                result.parents = parents.ToArray();
                                 result.backward_fn = () =>
                                 {
                                     var result_grad_ptr = (float*)result.grad.storage.data_ptr;

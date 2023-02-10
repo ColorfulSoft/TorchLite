@@ -284,7 +284,7 @@ namespace System.AI.Experimental
                         parents.Add(tensor);
                     }
                 }
-                output.__parents = parents.ToArray();
+                output.parents = parents.ToArray();
                 output.backward_fn = () =>
                 {
                     var dst_grad = (float*)output.grad.storage.data_ptr;

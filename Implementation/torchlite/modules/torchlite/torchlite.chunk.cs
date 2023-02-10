@@ -89,7 +89,7 @@ namespace System.AI.Experimental
                         }
                         if(output[chunk].requires_grad)
                         {
-                            output[chunk].__parents = new []{input};
+                            output[chunk].parents = new []{input};
                             // Make copy of common variables for lambda
                             var chunk_ = chunk;
                             var numel_ = numel;

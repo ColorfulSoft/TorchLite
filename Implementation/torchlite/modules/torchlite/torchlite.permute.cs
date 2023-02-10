@@ -97,7 +97,7 @@ namespace System.AI.Experimental
                     }
                     if(output.requires_grad)
                     {
-                        output.__parents = new []{input};
+                        output.parents = new []{input};
                         output.backward_fn = () =>
                         {
                             var src_grad = (float*)input.grad.storage.data_ptr;

@@ -43,7 +43,7 @@ namespace System.AI.Experimental
             if(input.requires_grad && torchlite.grad_enabled)
             {
                 t.__grad = torchlite.zeros(t.shape);
-                t.__parents = new []{input};
+                t.parents = new []{input};
                 var numel = t.shape.numel();
                 t.backward_fn = () =>
                 {

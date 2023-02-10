@@ -12,6 +12,16 @@ namespace System.AI.Experimental
     public unsafe static partial class torchlite
     {
 
+        /// <summary>
+        /// Returns the mean value of each row of the input tensor in the given dimension dim.
+        /// If dim is a list of dimensions, reduce over all of them.
+        /// If keepdim is True, the output tensor is of the same size as input except in the
+        /// dimension(s) dim where it is of size 1. Otherwise, dim is squeezed (see torchlite.squeeze()),
+        /// resulting in the output tensor having 1 (or len(dim)) fewer dimension(s).
+        /// </summary>
+        /// <param name="input">The input tensor.</param>
+        /// <param name="keepdim">Whether the output tensor has dim retained or not.</param>
+        /// <returns>Tensor.</returns>
         public static Tensor mean(this Tensor input, bool keepdim = false)
         {
             var dim = new int[input.shape.ndim];
@@ -22,11 +32,33 @@ namespace System.AI.Experimental
             return input.mean(dim, keepdim);
         }
 
+        /// <summary>
+        /// Returns the mean value of each row of the input tensor in the given dimension dim.
+        /// If dim is a list of dimensions, reduce over all of them.
+        /// If keepdim is True, the output tensor is of the same size as input except in the
+        /// dimension(s) dim where it is of size 1. Otherwise, dim is squeezed (see torchlite.squeeze()),
+        /// resulting in the output tensor having 1 (or len(dim)) fewer dimension(s).
+        /// </summary>
+        /// <param name="input">The input tensor.</param>
+        /// <param name="dim">The dimension or dimensions to reduce.</param>
+        /// <param name="keepdim">Whether the output tensor has dim retained or not.</param>
+        /// <returns>Tensor.</returns>
         public static Tensor mean(this Tensor input, int dim, bool keepdim = false)
         {
             return input.mean(new []{dim}, keepdim);
         }
 
+        /// <summary>
+        /// Returns the mean value of each row of the input tensor in the given dimension dim.
+        /// If dim is a list of dimensions, reduce over all of them.
+        /// If keepdim is True, the output tensor is of the same size as input except in the
+        /// dimension(s) dim where it is of size 1. Otherwise, dim is squeezed (see torchlite.squeeze()),
+        /// resulting in the output tensor having 1 (or len(dim)) fewer dimension(s).
+        /// </summary>
+        /// <param name="input">The input tensor.</param>
+        /// <param name="dim">The dimension or dimensions to reduce.</param>
+        /// <param name="keepdim">Whether the output tensor has dim retained or not.</param>
+        /// <returns>Tensor.</returns>
         public static Tensor mean(this Tensor input, IList<int> dim, bool keepdim = false)
         {
             if(dim == null)
@@ -121,7 +153,7 @@ namespace System.AI.Experimental
                     }
                     if(result.requires_grad)
                     {
-                        result.__parents = new []{input};
+                        result.parents = new []{input};
                         result.backward_fn = () =>
                         {
                             var y_grad = (float*)result.grad.storage.data_ptr;
