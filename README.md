@@ -12,7 +12,7 @@ Demo lightweight PyTorch-like DL library for educational purposes
 
 |      Example      |                                        Notebook                                       |
 |:-----------------:|:-------------------------------------------------------------------------------------:|
-|      Tensors      | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GlebSBrykin/DotNetInGoogleColab/blob/master/Templates/C%23.ipynb) |
+|      Tensors      | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ColorfulSoft/TorchLite/blob/master/Examples/Tensors.ipynb) |
 |      Autograd     | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GlebSBrykin/DotNetInGoogleColab/blob/master/Templates/C%23.ipynb) |
 |     Optimizers    | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GlebSBrykin/DotNetInGoogleColab/blob/master/Templates/C%23.ipynb) |
 | Linear Regression | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GlebSBrykin/DotNetInGoogleColab/blob/master/Templates/C%23.ipynb) |
