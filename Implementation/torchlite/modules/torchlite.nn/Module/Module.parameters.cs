@@ -19,6 +19,11 @@ namespace System.AI.Experimental
             public partial class Module
             {
 
+                /// <summary>
+                /// Returns an iterator over module parameters. This is typically passed to an optimizer.
+                /// </summary>
+                /// <param name="recurse">If True, then yields parameters of this module and all submodules. Otherwise, yields only parameters that are direct members of this module.</param>
+                /// <returns>IEnumerable&lt;Parameter&gt;</returns>
                 public IEnumerable<Parameter> parameters(bool recurse = true)
                 {
                     var parameters = new List<Parameter>();
