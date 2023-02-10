@@ -141,11 +141,13 @@
     <Compile Include="modules\torchlite\torchlite.full.cs" />
     <Compile Include="modules\torchlite\torchlite.is_storage.cs" />
     <Compile Include="modules\torchlite\torchlite.is_tensor.cs" />
+    <Compile Include="modules\torchlite\torchlite.load.cs" />
     <Compile Include="modules\torchlite\torchlite.mean.cs" />
     <Compile Include="modules\torchlite\torchlite.numel.cs" />
     <Compile Include="modules\torchlite\torchlite.permute.cs" />
     <Compile Include="modules\torchlite\torchlite.randn.cs" />
     <Compile Include="modules\torchlite\torchlite.relu.cs" />
+    <Compile Include="modules\torchlite\torchlite.save.cs" />
     <Compile Include="modules\torchlite\torchlite.squeeze.cs" />
     <Compile Include="modules\torchlite\torchlite.t.cs" />
     <Compile Include="modules\torchlite\torchlite.tensor.cs" />
