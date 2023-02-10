@@ -10,11 +10,17 @@
 
 Demo lightweight PyTorch-like DL library for educational purposes
 
-# Requirements
+# Requirements (Binaries)
 
 * Windows XP and higer, Linux, macOS, Android
 * .NET Framework >= 3.5, Mono, .NET Core, .NET
 * x86, x64, arm
+
+# Requirements (Build from source)
+
+* Windows Vista and higer
+* .NET Framework >= 4.5
+* SharpDevelop 5.1
 
 # Examples
 
