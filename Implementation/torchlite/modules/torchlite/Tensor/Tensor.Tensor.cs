@@ -45,6 +45,26 @@ namespace System.AI.Experimental
             }
 
             /// <summary>
+            /// Initializes a tensor with the specified storage and size.
+            /// </summary>
+            /// <param name="storage">Storage.</param>
+            /// <param name="shape">Shape.</param>
+            /// <param name="requires_grad">Specifies whether to create a gradient for the tensor.</param>
+            public Tensor(Storage storage, Size shape, bool requires_grad = false)
+            {
+                if(storage.size != shape.numel())
+                {
+                    throw new ArgumentException("The size of the tensor does not match the storage size.");
+                }
+                this.storage = storage;
+                this.shape = new Size(shape);
+                if(requires_grad && torchlite.grad_enabled)
+                {
+                    this.__grad = torchlite.zeros(this.shape, this.dtype);
+                }
+            }
+
+            /// <summary>
             /// Initializes a tensor of the specified size.
             /// </summary>
             /// <param name="shape">Tensor's dimensions.</param>

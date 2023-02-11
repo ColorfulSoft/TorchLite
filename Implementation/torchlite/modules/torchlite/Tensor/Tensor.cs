@@ -133,6 +133,29 @@ namespace System.AI.Experimental
 
             }
 
+            public Tensor data
+            {
+
+                get
+                {
+                    return new Tensor(this.storage, this.shape);
+                }
+
+                set
+                {
+                    if(this.shape != value.shape)
+                    {
+                        throw new ArgumentException("The size of the tensor and the data being set do not match.");
+                    }
+                    if(this.dtype != value.dtype)
+                    {
+                        throw new ArgumentException("The type of the current tensor and the data being set do not match.");
+                    }
+                    this.storage = value.storage;
+                }
+
+            }
+
             /// <summary>
             /// Provides tensor indexing by dimensions with slice support.
             /// </summary>
